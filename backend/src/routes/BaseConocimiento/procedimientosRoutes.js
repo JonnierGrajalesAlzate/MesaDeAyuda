@@ -1,0 +1,16 @@
+import { Router } from "express";
+import { actualizarProcedimiento, archivarProcedimiento, buscarTicketsReferencia, crearNotaProcedimiento, crearProcedimiento, eliminarProcedimiento, incrementarVista, obtenerProcedimientoPorId, obtenerProcedimientos, obtenerProcedimientosPorCategoria, publicarProcedimiento, restaurarProcedimiento } from "../../controllers/BaseConocimiento/index.js";
+const router = Router();
+router.get("/", obtenerProcedimientos);
+router.get("/tickets-referencia", buscarTicketsReferencia);
+router.get("/categoria/:categoriaId", obtenerProcedimientosPorCategoria);
+router.get("/:id", obtenerProcedimientoPorId);
+router.post("/", crearProcedimiento);
+router.put("/:id", actualizarProcedimiento);
+router.delete("/:id", eliminarProcedimiento);
+router.post("/:id/notas", crearNotaProcedimiento);
+router.put("/:id/publicar", publicarProcedimiento);
+router.put("/:id/archivar", archivarProcedimiento);
+router.put("/:id/restaurar", restaurarProcedimiento);
+router.patch("/:id/vista", incrementarVista);
+export default router;

@@ -1,0 +1,18 @@
+import { Router } from "express";
+import { autorizarRoles } from "../../middleware/auth.js";
+import { obtenerResumenAdministrador, obtenerTicketsAdministrador, obtenerTicketsPorEstado, obtenerTecnicosElegiblesTicket, reasignarTicket } from "../../controllers/Administrador/administradorController.js";
+import usuariosRoutes from "./CRUD/usuariosRoutes.js";
+import areasRoutes from "./CRUD/areasRoutes.js";
+import categoriasRoutes from "./CRUD/categoriasRoutes.js";
+import reportesRoutes from "./Reportes/reportesRoutes.js";
+const router = Router();
+router.get("/tickets", autorizarRoles("Administrador"), obtenerTicketsAdministrador);
+router.get("/estados/:id/tickets", autorizarRoles("Administrador"), obtenerTicketsPorEstado);
+router.get("/tickets/:id/tecnicos-elegibles", autorizarRoles("Administrador", "Tecnico"), obtenerTecnicosElegiblesTicket);
+router.patch("/tickets/:id/reasignar", autorizarRoles("Administrador", "Tecnico"), reasignarTicket);
+router.get("/resumen", autorizarRoles("Administrador"), obtenerResumenAdministrador);
+router.use("/usuarios", usuariosRoutes);
+router.use("/areas", areasRoutes);
+router.use("/categorias", categoriasRoutes);
+router.use("/reportes", reportesRoutes);
+export default router;
