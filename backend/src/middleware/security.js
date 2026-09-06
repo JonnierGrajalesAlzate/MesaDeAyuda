@@ -81,7 +81,9 @@ export function cabecerasSeguras(req, res, next) {
   res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()");
   res.setHeader("Content-Security-Policy", "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'");
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
-  res.setHeader("Cross-Origin-Resource-Policy", "same-site");
+  // El frontend vive en un dominio distinto (Vercel) al backend (Render), así que "same-site"
+  // haría que el navegador descarte la respuesta aunque el CORS ya la haya autorizado.
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
   res.setHeader("Cache-Control", "no-store");
   if (process.env.NODE_ENV === "production" && req.secure) {
     res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
