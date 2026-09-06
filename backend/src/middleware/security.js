@@ -90,11 +90,9 @@ export function cabecerasSeguras(req, res, next) {
 }
 export function validarOrigen(req, res, next) {
   if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
-  if (req.headers["sec-fetch-site"] === "cross-site") {
-    return res.status(403).json({
-      message: "Solicitud de origen no permitido"
-    });
-  }
+  // El frontend y el backend viven en dominios distintos (Vercel/Render), así que el navegador
+  // siempre marca estas peticiones como Sec-Fetch-Site: cross-site. La lista blanca de
+  // FRONTEND_URLS (origenPermitido) es la que realmente controla qué orígenes pueden entrar.
   if (!origenPermitido(req.headers.origin)) {
     return res.status(403).json({
       message: "Origen no permitido"

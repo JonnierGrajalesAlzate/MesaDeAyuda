@@ -31,10 +31,13 @@ export function origenPermitido(origin) {
   }
 }
 export function opcionesCookieSesion() {
+  const enProduccion = process.env.NODE_ENV === "production";
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    secure: enProduccion,
+    // En producción el frontend y el backend viven en dominios distintos (Vercel/Render, etc.),
+    // por lo que la cookie necesita SameSite=None para viajar en esas peticiones cross-site.
+    sameSite: enProduccion ? "none" : "strict",
     maxAge: SESSION_ABSOLUTE_TIMEOUT_MS,
     path: "/",
     priority: "high"
