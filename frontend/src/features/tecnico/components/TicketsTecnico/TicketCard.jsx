@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Check, ClipboardCheck, EllipsisVertical, X } from "lucide-react";
+import { aFechaUtc, formatearTiempoRelativo } from "../../../../shared/utils/tiempoRelativo.js";
 
 function TicketCard({
   ticket,
@@ -290,13 +291,12 @@ function TicketCard({
 
                     </p>
 
-                    <p className="
-                            mt-1
-                            text-sm
-                            text-slate-700
-                        ">
+                    <p
+                      className="mt-1 text-sm text-slate-700"
+                      title={aFechaUtc(ticket.fecha_creacion).toLocaleString()}
+                    >
 
-                        {new Date(ticket.fecha_creacion).toLocaleDateString()}
+                        {formatearTiempoRelativo(ticket.fecha_creacion)}
 
                     </p>
 

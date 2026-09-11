@@ -2,6 +2,7 @@ export const DEFAULT_REPORT_LAYOUT = [
   "insight-closure",
   "insight-area",
   "insight-time",
+  "insight-prediction",
   "kpi-open",
   "kpi-process",
   "kpi-waiting",
@@ -34,6 +35,13 @@ export const REPORT_WIDGETS = {
   "insight-time": {
     title: "Tiempo promedio",
     description: "Promedio estimado de resolución",
+    category: "Indicadores ejecutivos",
+    size: "small",
+    type: "insight"
+  },
+  "insight-prediction": {
+    title: "Predicción próximo mes",
+    description: "Tickets estimados por regresión lineal sobre el histórico mensual",
     category: "Indicadores ejecutivos",
     size: "small",
     type: "insight"

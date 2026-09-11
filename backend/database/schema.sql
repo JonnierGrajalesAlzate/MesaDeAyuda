@@ -425,7 +425,8 @@ CREATE TABLE public.preferencias_notificaciones (
 CREATE TABLE public.prioridades (
     id integer NOT NULL,
     nombre character varying(50) NOT NULL,
-    color character varying
+    color character varying,
+    nivel integer DEFAULT 1 NOT NULL
 );
 
 

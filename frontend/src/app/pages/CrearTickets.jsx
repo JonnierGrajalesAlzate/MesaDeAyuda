@@ -21,6 +21,7 @@ function CrearTickets() {
   const [categorias, setCategorias] = useState([]);
   const [prioridades, setPrioridades] = useState([]);
   const [subcategorias, setSubcategorias] = useState([]);
+  const [cargandoSubcategorias, setCargandoSubcategorias] = useState(false);
   const [archivo, setArchivo] = useState(null);
   const [enviando, setEnviando] = useState(false);
   const [arrastrando, setArrastrando] = useState(false);
@@ -70,11 +71,14 @@ function CrearTickets() {
   useEffect(() => {
     if (!formData.categoria_id) return undefined;
     let active = true;
+    setCargandoSubcategorias(true);
     obtenerSubcategorias(formData.categoria_id).then(data => {
       if (!active) return;
       setSubcategorias(Array.isArray(data) ? data : []);
     }).catch(() => {
       if (active) setSubcategorias([]);
+    }).finally(() => {
+      if (active) setCargandoSubcategorias(false);
     });
     return () => {
       active = false;
@@ -88,10 +92,14 @@ function CrearTickets() {
   const selectCategoria = categoriaId => {
     setFormData(prev => ({ ...prev, categoria_id: categoriaId, subcategoria_id: "", descripcion: "" }));
     setSubcategorias([]);
+    setCargandoSubcategorias(Boolean(categoriaId));
   };
-  const selectSubcategoria = subcategoria => setFormData(prev => (subcategoria === "otro"
-    ? { ...prev, subcategoria_id: "otro", descripcion: "" }
-    : { ...prev, subcategoria_id: subcategoria.id, descripcion: subcategoria.descripcion }));
+  const selectSubcategoria = subcategoria => setFormData(prev => ({
+    ...prev,
+    subcategoria_id: subcategoria === "otro" ? "otro" : subcategoria.id,
+    descripcion: ""
+  }));
+  const clearSubcategoria = () => setFormData(prev => ({ ...prev, subcategoria_id: "", descripcion: "" }));
 
   const handleFileChange = e => {
     const file = e.target.files?.[0] || null;
@@ -198,7 +206,14 @@ function CrearTickets() {
   const prioridadBase = prioridadSubcategoria || prioridadCategoria;
   const prioridadAlta = prioridades.find(prioridad => String(prioridad.nombre).trim().toLowerCase() === "alta");
   const prioridadAsignada = formData.es_critico ? (prioridadAlta || prioridadBase) : prioridadBase;
-  const descripcionBloqueada = subcategorias.length > 0 && formData.subcategoria_id !== "otro";
+  const opcionesSubcategoria = [...subcategorias, { id: "otro", descripcion: "Otro" }];
+  const categoriasVisibles = formData.categoria_id
+    ? categorias.filter(categoria => String(categoria.id) === String(formData.categoria_id))
+    : categorias;
+  const opcionesSubcategoriaVisibles = formData.subcategoria_id
+    ? opcionesSubcategoria.filter(opcion => String(opcion.id) === String(formData.subcategoria_id))
+    : opcionesSubcategoria;
+  const prioridadLista = Boolean(categoriaSeleccionada) && !cargandoSubcategorias && (subcategorias.length === 0 || Boolean(formData.subcategoria_id));
 
   const archivoEsImagen = archivo?.type?.startsWith("image/") ?? false;
   const archivoPreviewUrl = useMemo(
@@ -243,7 +258,7 @@ function CrearTickets() {
                                 Categoría <span className="text-red-600" aria-hidden="true">*</span>
                             </label>
                             <div className="flex flex-wrap gap-1.5">
-                                {categorias.map(categoria => {
+                                {categoriasVisibles.map(categoria => {
                                   const seleccionada = String(formData.categoria_id) === String(categoria.id);
                                   return <span key={categoria.id} className="relative inline-flex">
                                     <button
@@ -271,31 +286,30 @@ function CrearTickets() {
                         {categoriaSeleccionada && subcategorias.length > 0 && (
                           <div>
                               <label className="mb-2 block font-bold text-slate-900">
-                                  ¿Cuál describe mejor tu problema? <span className="text-red-600" aria-hidden="true">*</span>
+                                  Elige una subcategoría <span className="text-red-600" aria-hidden="true">*</span>
                               </label>
                               <div className="flex flex-wrap gap-1.5">
-                                  {subcategorias.map(subcategoria => {
-                                    const seleccionada = String(formData.subcategoria_id) === String(subcategoria.id);
-                                    return (
+                                  {opcionesSubcategoriaVisibles.map(opcion => {
+                                    const seleccionada = String(formData.subcategoria_id) === String(opcion.id);
+                                    return <span key={opcion.id} className="relative inline-flex">
                                       <button
-                                        key={subcategoria.id}
                                         type="button"
                                         aria-pressed={seleccionada}
-                                        onClick={() => selectSubcategoria(subcategoria)}
-                                        className={`create-ticket-pill${seleccionada ? " is-selected" : ""}`}
+                                        onClick={() => selectSubcategoria(opcion.id === "otro" ? "otro" : opcion)}
+                                        className={`create-ticket-pill${seleccionada ? " is-selected has-clear" : ""}`}
                                       >
-                                        {subcategoria.descripcion}
+                                        {opcion.descripcion}
                                       </button>
-                                    );
+                                      {seleccionada && <button
+                                        type="button"
+                                        aria-label={`Quitar selección de ${opcion.descripcion}`}
+                                        onClick={clearSubcategoria}
+                                        className="create-ticket-pill-clear"
+                                      >
+                                          <X className="h-2.5 w-2.5" strokeWidth={3} aria-hidden="true" />
+                                      </button>}
+                                    </span>;
                                   })}
-                                  <button
-                                    type="button"
-                                    aria-pressed={formData.subcategoria_id === "otro"}
-                                    onClick={() => selectSubcategoria("otro")}
-                                    className={`create-ticket-pill${formData.subcategoria_id === "otro" ? " is-selected" : ""}`}
-                                  >
-                                      Otro
-                                  </button>
                               </div>
                           </div>
                         )}
@@ -304,7 +318,7 @@ function CrearTickets() {
                             <label className="mb-2 block font-bold text-slate-900">
                                 Prioridad
                             </label>
-                            {categoriaSeleccionada ? (
+                            {prioridadLista ? (
                               <span
                                 className="create-ticket-pill create-ticket-pill--priority is-selected inline-flex w-auto"
                                 style={{ "--pill-color": prioridadAsignada?.color || "#0076e3" }}
@@ -312,10 +326,11 @@ function CrearTickets() {
                                 <span className="create-ticket-pill-dot" aria-hidden="true" />
                                 {prioridadAsignada?.nombre || "Sin prioridad configurada"}
                               </span>
-                            ) : null}
-                            {!categoriaSeleccionada && (
+                            ) : (
                               <p className="mt-1.5 text-sm text-slate-400">
-                                  La prioridad se asigna automáticamente según la categoría
+                                  {categoriaSeleccionada
+                                    ? "La prioridad se asignará según la subcategoría que elijas"
+                                    : "La prioridad se asigna automáticamente según la categoría"}
                               </p>
                             )}
 
@@ -346,11 +361,8 @@ function CrearTickets() {
                               value={formData.descripcion}
                               onChange={handleChange}
                               rows="6"
-                              disabled={descripcionBloqueada}
-                              placeholder={descripcionBloqueada
-                                ? "Selecciona una opción arriba, o elige “Otro” para escribir tu propia descripción."
-                                : "Describe detalladamente el problema: qué intentabas hacer, qué pasó y desde cuándo."}
-                              className="create-ticket-input resize-none disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500"
+                              placeholder="Describe detalladamente el problema: qué intentabas hacer, qué pasó y desde cuándo."
+                              className="create-ticket-input resize-none"
                               maxLength={MAX_DESCRIPCION}
                             />
                         </div>

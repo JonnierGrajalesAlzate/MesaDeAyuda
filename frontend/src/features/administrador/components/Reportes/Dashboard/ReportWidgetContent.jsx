@@ -1,4 +1,4 @@
-import { Building2 } from "lucide-react";
+import { Building2, TrendingUp } from "lucide-react";
 import abiertoIcon from "../../../../../assets/abierto.png";
 import cerradoIcon from "../../../../../assets/cerrado.png";
 import enEsperaIcon from "../../../../../assets/enEspera.png";
@@ -25,6 +25,28 @@ const SCORE_WIDGETS = {
 
 const ESTADO_CERRADO_ID = 2;
 
+function prediccionInsight(prediccion) {
+  if (!prediccion) {
+    return {
+      value: "Sin datos",
+      helper: "se necesitan al menos 2 meses con tickets para estimar una tendencia",
+      icon: null,
+      color: "#94a3b8"
+    };
+  }
+  const tendenciaTexto = prediccion.pendiente > 0
+    ? "más tickets que el mes anterior (tendencia al alza)"
+    : prediccion.pendiente < 0
+      ? "menos tickets que el mes anterior (tendencia a la baja)"
+      : "el mismo volumen que el mes anterior (tendencia estable)";
+  return {
+    value: `${prediccion.tickets_estimados} tickets`,
+    helper: `estimados para ${prediccion.proximo_periodo}: ${tendenciaTexto}`,
+    icon: null,
+    color: prediccion.pendiente > 0 ? "#eb3131" : prediccion.pendiente < 0 ? "#00a87f" : "#0076e3"
+  };
+}
+
 function InsightContent({ widgetId, data }) {
   const total = Number(data.kpis.total || 0);
   const colorCerrado = data.estados.find(estado => estado.estado_id === ESTADO_CERRADO_ID)?.color || "#00a87f";
@@ -46,7 +68,8 @@ function InsightContent({ widgetId, data }) {
       helper: "promedio estimado de resolución",
       icon: tiempoIcon,
       color: "#1e222b"
-    }
+    },
+    "insight-prediction": prediccionInsight(data.prediccion)
   };
   const insight = insights[widgetId];
 
@@ -58,7 +81,9 @@ function InsightContent({ widgetId, data }) {
       </div>
       {insight.icon
         ? <img src={insight.icon} alt="" />
-        : <Building2 width={72} height={72} strokeWidth={1.5} aria-hidden="true" />}
+        : widgetId === "insight-prediction"
+          ? <TrendingUp width={72} height={72} strokeWidth={1.5} aria-hidden="true" />
+          : <Building2 width={72} height={72} strokeWidth={1.5} aria-hidden="true" />}
     </div>
   );
 }

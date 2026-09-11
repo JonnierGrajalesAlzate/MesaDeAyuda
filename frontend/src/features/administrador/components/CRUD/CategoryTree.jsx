@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import CrudActionsMenu from "./CrudActionsMenu.jsx";
+import { listarSubcategorias } from "../../services/CRUD/subcategoriasService.js";
 
 function ToggleIcon({ open }) {
   return (
@@ -8,6 +9,78 @@ function ToggleIcon({ open }) {
       <path d="M1 5h8" />
       {!open && <path d="M5 1v8" />}
     </svg>
+  );
+}
+
+// Nodo recursivo del árbol: una categoría puede tener subcategorías como hijas,
+// y este mismo componente vuelve a invocarse a sí mismo para renderizar cada una
+// (caso base: un nodo sin hijos, como una subcategoría, simplemente no vuelve a expandirse).
+function CategoryNode({ categoria, onViewCategoria, onEditCategoria, onDeleteCategoria }) {
+  const esCategoria = categoria.tipo === "categoria";
+  const [open, setOpen] = useState(false);
+  const [hijos, setHijos] = useState(null);
+  const [cargando, setCargando] = useState(false);
+
+  const toggle = () => {
+    if (!esCategoria) return;
+    const next = !open;
+    setOpen(next);
+    if (next && hijos === null) {
+      setCargando(true);
+      listarSubcategorias(categoria.id)
+        .then(data => setHijos((data.subcategorias || []).map(sub => ({
+          id: sub.id,
+          tipo: "subcategoria",
+          nombre: sub.descripcion,
+          descripcion: ""
+        }))))
+        .catch(() => setHijos([]))
+        .finally(() => setCargando(false));
+    }
+  };
+
+  return (
+    <li>
+      <div className="org-tree-node">
+        {esCategoria && (
+          <button type="button" className="org-tree-toggle" onClick={toggle} aria-expanded={open} aria-label={open ? `Contraer ${categoria.nombre}` : `Expandir ${categoria.nombre}`}>
+            <ToggleIcon open={open} />
+          </button>
+        )}
+        <div className="org-tree-user-row">
+          <div className="min-w-0">
+            <p className="org-tree-user-name" title={categoria.nombre}>{categoria.nombre}</p>
+            {categoria.descripcion && <p className="org-tree-user-meta" title={categoria.descripcion}>{categoria.descripcion}</p>}
+          </div>
+        </div>
+        {esCategoria && (
+          <div className="org-tree-actions">
+            <CrudActionsMenu
+              itemLabel={categoria.nombre}
+              editLabel="Editar categoría"
+              deleteLabel="Eliminar categoría"
+              onView={() => onViewCategoria(categoria)}
+              onEdit={() => onEditCategoria(categoria)}
+              onDelete={() => onDeleteCategoria(categoria)}
+            />
+          </div>
+        )}
+      </div>
+
+      {esCategoria && open && <ul className="org-tree-children">
+        {cargando && <li><div className="org-tree-empty-branch">Cargando subcategorías…</div></li>}
+        {!cargando && hijos?.length === 0 && <li><div className="org-tree-empty-branch">Sin subcategorías registradas.</div></li>}
+        {!cargando && hijos?.map(hijo => (
+          <CategoryNode
+            key={`${hijo.tipo}-${hijo.id}`}
+            categoria={hijo}
+            onViewCategoria={onViewCategoria}
+            onEditCategoria={onEditCategoria}
+            onDeleteCategoria={onDeleteCategoria}
+          />
+        ))}
+      </ul>}
+    </li>
   );
 }
 
@@ -55,26 +128,13 @@ export default function CategoryTree({
 
           {isOpen && <ul className="org-tree-children">
             {visibleCategorias.map(categoria => (
-              <li key={categoria.id}>
-                <div className="org-tree-node">
-                  <div className="org-tree-user-row">
-                    <div className="min-w-0">
-                      <p className="org-tree-user-name" title={categoria.nombre}>{categoria.nombre}</p>
-                      <p className="org-tree-user-meta" title={categoria.descripcion}>{categoria.descripcion}</p>
-                    </div>
-                  </div>
-                  <div className="org-tree-actions">
-                    <CrudActionsMenu
-                      itemLabel={categoria.nombre}
-                      editLabel="Editar categoría"
-                      deleteLabel="Eliminar categoría"
-                      onView={() => onViewCategoria(categoria)}
-                      onEdit={() => onEditCategoria(categoria)}
-                      onDelete={() => onDeleteCategoria(categoria)}
-                    />
-                  </div>
-                </div>
-              </li>
+              <CategoryNode
+                key={categoria.id}
+                categoria={{ ...categoria, tipo: "categoria" }}
+                onViewCategoria={onViewCategoria}
+                onEditCategoria={onEditCategoria}
+                onDeleteCategoria={onDeleteCategoria}
+              />
             ))}
             {visibleCategorias.length === 0 && <li>
               <div className="org-tree-empty-branch">

@@ -777,7 +777,7 @@ AS $$
         'disponible', (t.tecnico_id IS NULL AND t.estado_id = 4),
         'solicitud_reasignacion_id', sr.id,
         'solicitud_origen_tecnico', CONCAT(so.nombre, ' ', so.apellido)
-      ) ORDER BY t.fecha_creacion ASC), '[]'::jsonb)
+      ) ORDER BY p.nivel DESC, t.fecha_creacion ASC), '[]'::jsonb)
       FROM tickets t
       INNER JOIN categorias c ON c.id = t.categoria_id
       INNER JOIN prioridades p ON p.id = t.prioridad_id
@@ -866,6 +866,15 @@ AS $$
       AND (p_categoria_ids IS NULL OR array_length(p_categoria_ids, 1) IS NULL OR t.categoria_id = ANY(p_categoria_ids))
       AND (p_estado_ids IS NULL OR array_length(p_estado_ids, 1) IS NULL OR t.estado_id = ANY(p_estado_ids))
       AND (p_prioridad_ids IS NULL OR array_length(p_prioridad_ids, 1) IS NULL OR t.prioridad_id = ANY(p_prioridad_ids))
+  ),
+  serie_mensual AS (
+    SELECT DATE_TRUNC('month', fecha_creacion) AS mes,
+           COUNT(*)::int AS creados,
+           COUNT(*) FILTER (WHERE estado_id = 2)::int AS cerrados
+    FROM filtrados
+    GROUP BY DATE_TRUNC('month', fecha_creacion)
+    ORDER BY DATE_TRUNC('month', fecha_creacion) DESC
+    LIMIT 12
   )
   SELECT jsonb_build_object(
     'kpis', (
@@ -939,15 +948,26 @@ AS $$
       SELECT COALESCE(jsonb_agg(jsonb_build_object(
         'periodo', TO_CHAR(mes, 'Mon YYYY'), 'creados', creados, 'cerrados', cerrados
       ) ORDER BY mes ASC), '[]'::jsonb)
+      FROM serie_mensual
+    ),
+    -- Regresión lineal real (mínimos cuadrados) sobre "creados" por mes:
+    -- x = índice cronológico del mes (0,1,2,...), y = tickets creados ese mes.
+    -- regr_slope/regr_intercept son funciones nativas de Postgres que ajustan
+    -- la recta y = pendiente*x + intercepto minimizando el error cuadrático.
+    'prediccion', (
+      SELECT CASE WHEN COUNT(*) < 2 THEN NULL ELSE
+        jsonb_build_object(
+          'pendiente', ROUND(regr_slope(creados, indice)::numeric, 3),
+          'intercepto', ROUND(regr_intercept(creados, indice)::numeric, 3),
+          'proximo_periodo', TO_CHAR(MAX(mes) + interval '1 month', 'Mon YYYY'),
+          'tickets_estimados', GREATEST(0, ROUND((regr_slope(creados, indice) * COUNT(*) + regr_intercept(creados, indice))::numeric))::int,
+          'meses_analizados', COUNT(*)::int
+        )
+      END
       FROM (
-        SELECT DATE_TRUNC('month', fecha_creacion) AS mes,
-               COUNT(*)::int AS creados,
-               COUNT(*) FILTER (WHERE estado_id = 2)::int AS cerrados
-        FROM filtrados
-        GROUP BY DATE_TRUNC('month', fecha_creacion)
-        ORDER BY DATE_TRUNC('month', fecha_creacion) DESC
-        LIMIT 12
-      ) sub
+        SELECT mes, creados, (ROW_NUMBER() OVER (ORDER BY mes) - 1)::float8 AS indice
+        FROM serie_mensual
+      ) serie_indexada
     ),
     'recientes', (
       SELECT COALESCE(jsonb_agg(jsonb_build_object(

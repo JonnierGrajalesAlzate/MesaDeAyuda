@@ -29,6 +29,7 @@ const EMPTY_REPORT = {
   categorias: [],
   prioridades: [],
   tendencia: [],
+  prediccion: null,
   recientes: []
 };
 export default function Reportes() {

@@ -5,29 +5,31 @@ import { actualizarSubcategoria, crearSubcategoria, eliminarSubcategoria, listar
 
 function SubcategoriaForm({ descripcion, setDescripcion, prioridadId, setPrioridadId, prioridades, saving, onSubmit, onCancel }) {
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-2 rounded border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center">
+    <div className="flex flex-col gap-2 rounded border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center">
       <input
         className="field flex-1"
         placeholder="Ej. Restablecer contraseña"
         value={descripcion}
         onChange={event => setDescripcion(event.target.value)}
+        onKeyDown={event => {
+          if (event.key === "Enter") onSubmit(event);
+        }}
         maxLength={300}
         autoFocus
-        required
       />
-      <select className="field sm:w-40" value={prioridadId} onChange={event => setPrioridadId(event.target.value)} required>
+      <select className="field sm:basis-40 sm:grow-0 sm:shrink-0" value={prioridadId} onChange={event => setPrioridadId(event.target.value)}>
         <option value="" disabled>Prioridad</option>
         {(prioridades || []).map(prioridad => <option key={prioridad.id} value={prioridad.id}>{prioridad.nombre}</option>)}
       </select>
       <div className="flex gap-2">
-        <button type="submit" disabled={saving} className="min-h-9 bg-[#0076e3] px-3 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
+        <button type="button" onClick={onSubmit} disabled={saving} className="min-h-9 bg-[#0076e3] px-3 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
           Guardar
         </button>
         <button type="button" onClick={onCancel} className="min-h-9 border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-600">
           Cancelar
         </button>
       </div>
-    </form>
+    </div>
   );
 }
 
@@ -126,10 +128,6 @@ export default function SubcategoriasManager({ categoriaId, prioridades, readOnl
           </button>
         )}
       </div>
-      <p className="mt-1 text-xs font-normal text-slate-400">
-        Se muestran como opciones al crear un ticket en esta categoría. La opción "Otro" siempre queda disponible para que el usuario escriba su propia descripción.
-      </p>
-
       {loading ? <p className="mt-3 text-sm text-slate-400">Cargando…</p> : <div className="mt-3 space-y-2">
         {subcategorias.map(subcategoria => {
           const prioridad = prioridadDe(subcategoria.prioridad_id);

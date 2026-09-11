@@ -40,6 +40,7 @@ export async function obtenerReportes(req, res) {
       categorias: data.categorias,
       prioridades: data.prioridades,
       tendencia: data.tendencia,
+      prediccion: data.prediccion,
       recientes: data.recientes
     });
   } catch (error) {
